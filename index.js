@@ -5,6 +5,7 @@ import fetch from 'node-fetch';
 import 'dotenv/config';
 
 let lastAlertId = -1;
+let count = 0;
 
 const cities = (await (await fetch('https://www.tzevaadom.co.il/static/cities.json?v=5')).json()).cities;
 
@@ -51,13 +52,20 @@ setInterval(ping, 50000);
 
 client.on('ready', () => {
   setInterval(async () => {
+    if (count != 0 && count < 5) {
+      count++;
+      return;
+    }
+
     const res = await fetch('https://api.tzevaadom.co.il/alerts-history/');
 
     let allAlerts;
-    try {
-      allAlerts = await res.json();
-    } catch {
+
+    if (res.ok) allAlerts = await res.json();
+    else {
       allAlerts = [{ id: -1 }];
+      // If API fails, wait a bit before retry
+      count = 1;
     }
 
     if (allAlerts[0].id != lastAlertId && allAlerts[0].id != -1) {
@@ -71,11 +79,16 @@ client.on('ready', () => {
             if (a.threat == 9) continue;
             if (a.isDrill) continue;
 
-            msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL')}]:\n${a.cities
-              .map((city) => cities[city].en)
-              .join(', ')}\n\n`;
+            msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
+              timeZone: 'Israel',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
           }
 
+          console.log(msg);
+          console.log('----------------------');
           const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
 
           const embed = new EmbedBuilder();
