@@ -21,6 +21,34 @@ const threats = {
   9: 'Red Alert Drill',
 };
 
+import express from 'express';
+
+const app = express();
+
+import bodyParser from 'body-parser';
+
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+  })
+);
+
+app.get('/', (req, res) => {
+  res.send('Received, ' + Date.now());
+});
+
+const listener = app.listen(process.env.PORT, () => {
+  console.log('Listening on PORT ' + listener.address().port);
+});
+
+function ping() {
+  fetch(PROCESS.env.replURL);
+
+  console.log('Pinged REPL');
+}
+
+setInterval(ping, 50000);
+
 client.on('ready', () => {
   setInterval(async () => {
     const res = await fetch('https://api.tzevaadom.co.il/alerts-history/');

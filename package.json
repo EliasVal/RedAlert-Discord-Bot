@@ -10,8 +10,10 @@
   "author": "EliasVal",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.20.2",
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "node-fetch": "^3.3.2"
   },
   "type": "module",
