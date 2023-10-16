@@ -2,3 +2,4 @@ node_modules
 .env
 .glitch-assets
 shrinkwrap.yaml
+testing.json

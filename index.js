@@ -1,10 +1,12 @@
 import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 import fetch from 'node-fetch';
+import { readFileSync } from 'fs';
 
 import 'dotenv/config';
 
 let lastAlertId = -1;
+let lastAlertTime = 0;
 let count = 0;
 
 const cities = (await (await fetch('https://www.tzevaadom.co.il/static/cities.json?v=5')).json()).cities;
@@ -50,60 +52,67 @@ function ping() {
 
 setInterval(ping, 50000);
 
-client.on('ready', () => {
-  setInterval(async () => {
-    if (count != 0 && count < 5) {
-      count++;
-      return;
-    }
+async function Announce() {
+  if (count != 0 && count < 5) {
+    count++;
+    return;
+  }
 
-    const res = await fetch('https://api.tzevaadom.co.il/alerts-history/');
+  // const allAlerts = JSON.parse(await readFileSync('./testing.json'));
+  const res = await fetch('https://api.tzevaadom.co.il/alerts-history/');
 
-    let allAlerts;
+  let allAlerts;
 
-    if (res.ok) allAlerts = await res.json();
-    else {
-      allAlerts = [{ id: -1 }];
-      // If API fails, wait a bit before retry
-      count = 1;
-    }
+  if (res.ok) allAlerts = await res.json();
+  else {
+    allAlerts = [{ id: -1 }];
+    // If API fails, wait a bit before retry
+    count = 1;
+  }
 
-    if (allAlerts[0].id != lastAlertId && allAlerts[0].id != -1) {
-      if (lastAlertId != -1) {
-        const alerts = allAlerts.filter((alert) => alert.id > lastAlertId);
+  if (allAlerts[0].id >= lastAlertId && allAlerts[0].id != -1) {
+    if (lastAlertId != -1) {
+      const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId);
 
-        let msg = '';
+      let msg = '';
 
-        for (const alert of alerts) {
-          for (const a of alert.alerts) {
-            if (a.threat == 9) continue;
-            if (a.isDrill) continue;
+      for (const alert of alerts) {
+        for (const a of alert.alerts) {
+          if (a.threat == 9) continue;
+          if (a.isDrill) continue;
+          if (a.time <= lastAlertTime) continue;
 
-            msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
-              timeZone: 'Israel',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
-          }
+          msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
+            timeZone: 'Israel',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
 
-          console.log(msg);
-          console.log('----------------------');
-          const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
-
-          const embed = new EmbedBuilder();
-          embed.setColor('DarkRed');
-          embed.setTitle('Sirens in Israel');
-          embed.setDescription(msg);
-          c.send({ embeds: [embed] });
+          lastAlertTime = a.time; //allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
         }
+
+        if (msg == '') continue;
+
+        // console.log(msg);
+        // console.log('----------------------');
+        const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
+
+        const embed = new EmbedBuilder();
+        embed.setColor('DarkRed');
+        embed.setTitle('Sirens in Israel');
+        embed.setDescription(msg);
+        c.send({ embeds: [embed] });
       }
-
-      lastAlertId = allAlerts[0].id;
     }
-  }, 2500);
-});
 
+    lastAlertId = allAlerts[0].id;
+  }
+
+  setTimeout(Announce, 2000);
+}
+
+client.on('ready', Announce);
 client.login(process.env.TOKEN);
 
 export {};
