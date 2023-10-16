@@ -42,7 +42,7 @@ const listener = app.listen(process.env.PORT, () => {
 });
 
 function ping() {
-  fetch(PROCESS.env.replURL);
+  fetch(process.env.replURL);
 
   console.log('Pinged REPL');
 }
