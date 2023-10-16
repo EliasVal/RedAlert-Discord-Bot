@@ -2,8 +2,7 @@ import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 import fetch from 'node-fetch';
 
-import config from 'dotenv';
-config();
+import 'dotenv/config';
 
 let lastAlertId = -1;
 
@@ -33,7 +32,7 @@ client.on('ready', () => {
       allAlerts = [{ id: -1 }];
     }
 
-    if (allAlerts[0].id != lastAlertId) {
+    if (allAlerts[0].id != lastAlertId && allAlerts[0].id != -1) {
       if (lastAlertId != -1) {
         const alerts = allAlerts.filter((alert) => alert.id > lastAlertId);
 
@@ -49,7 +48,7 @@ client.on('ready', () => {
               .join(', ')}\n\n`;
           }
 
-          const c = await client.channels.fetch('1163247036808839259');
+          const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
 
           const embed = new EmbedBuilder();
           embed.setColor('DarkRed');

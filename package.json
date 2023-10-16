@@ -14,5 +14,8 @@
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": "16.x"
+  }
 }
