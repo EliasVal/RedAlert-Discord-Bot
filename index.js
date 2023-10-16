@@ -6,7 +6,7 @@ import { readFileSync } from 'fs';
 import 'dotenv/config';
 
 let lastAlertId = -1;
-let lastAlertTime = 0;
+let lastAlertTime = -1;
 let count = 0;
 
 const cities = (await (await fetch('https://www.tzevaadom.co.il/static/cities.json?v=5')).json()).cities;
@@ -89,13 +89,11 @@ async function Announce() {
             hour12: false,
           })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
 
-          lastAlertTime = a.time; //allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
+          lastAlertTime = a.time;
         }
 
         if (msg == '') continue;
 
-        // console.log(msg);
-        // console.log('----------------------');
         const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
 
         const embed = new EmbedBuilder();
@@ -104,7 +102,7 @@ async function Announce() {
         embed.setDescription(msg);
         c.send({ embeds: [embed] });
       }
-    }
+    } else lastAlertTime = allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
 
     lastAlertId = allAlerts[0].id;
   }
