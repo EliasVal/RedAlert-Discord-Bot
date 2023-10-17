@@ -70,13 +70,16 @@ async function Announce() {
     count = 1;
   }
 
+  if(lastAlertId == -1){
+    lastAlertTime = allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
+    lastAlertId = allAlerts[0].id;
+  }
+
   if (allAlerts[0].id >= lastAlertId && allAlerts[0].id != -1) {
-    if (lastAlertId != -1) {
       const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId);
 
-      let msg = '';
-
       for (const alert of alerts) {
+        let msg = '';
         for (const a of alert.alerts) {
           if (a.threat == 9) continue;
           if (a.isDrill) continue;
@@ -102,8 +105,6 @@ async function Announce() {
         embed.setDescription(msg);
         c.send({ embeds: [embed] });
       }
-    } else lastAlertTime = allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
-
     lastAlertId = allAlerts[0].id;
   }
 
