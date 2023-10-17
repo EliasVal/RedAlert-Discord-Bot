@@ -29,6 +29,7 @@ import express from 'express';
 const app = express();
 
 import bodyParser from 'body-parser';
+import { Message } from 'discord.js';
 
 app.use(
   bodyParser.urlencoded({
@@ -70,41 +71,43 @@ async function Announce() {
     count = 1;
   }
 
-  if(lastAlertId == -1){
+  if (lastAlertId == -1) {
     lastAlertTime = allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
     lastAlertId = allAlerts[0].id;
   }
 
   if (allAlerts[0].id >= lastAlertId && allAlerts[0].id != -1) {
-      const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId);
+    const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId);
 
-      for (const alert of alerts) {
-        let msg = '';
-        for (const a of alert.alerts) {
-          if (a.threat == 9) continue;
-          if (a.isDrill) continue;
-          if (a.time <= lastAlertTime) continue;
+    for (const alert of alerts) {
+      let msg = '';
+      for (const a of alert.alerts) {
+        if (a.threat == 9) continue;
+        if (a.isDrill) continue;
+        if (a.time <= lastAlertTime) continue;
 
-          msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
-            timeZone: 'Israel',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
+        msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
+          timeZone: 'Israel',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
 
-          lastAlertTime = a.time;
-        }
-
-        if (msg == '') continue;
-
-        const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
-
-        const embed = new EmbedBuilder();
-        embed.setColor('DarkRed');
-        embed.setTitle('Sirens in Israel');
-        embed.setDescription(msg);
-        c.send({ embeds: [embed] });
+        lastAlertTime = a.time;
       }
+
+      if (msg == '') continue;
+
+      const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
+
+      const embed = new EmbedBuilder();
+      embed.setColor('DarkRed');
+      embed.setTitle('Sirens in Israel');
+      embed.setDescription(msg);
+      const m = await c.send({ embeds: [embed] });
+
+      if (m.crosspostable) m.crosspost();
+    }
     lastAlertId = allAlerts[0].id;
   }
 
