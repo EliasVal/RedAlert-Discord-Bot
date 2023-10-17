@@ -6,8 +6,9 @@ import { readFileSync } from 'fs';
 import 'dotenv/config';
 
 let lastAlertId = -1;
-let lastAlertTime = -1;
+let lastAlertAmount = 0;
 let count = 0;
+let lastMessage = null;
 
 const cities = (await (await fetch('https://www.tzevaadom.co.il/static/cities.json?v=5')).json()).cities;
 
@@ -69,18 +70,17 @@ async function Announce() {
     // If API fails, wait a bit before retry
     count = 1;
   }
-
+  if(lastAlertId == -1){
+    lastAlertId = allAlerts[0].id;
+    lastAlertAmount = allAlerts[0].alerts.length
+  }
   if (allAlerts[0].id >= lastAlertId && allAlerts[0].id != -1) {
-    if (lastAlertId != -1) {
-      const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId);
-
-      let msg = '';
-
+      const alerts = allAlerts.filter((alert) => alert.id >= lastAlertId).reverse();
       for (const alert of alerts) {
+        let msg = '';
         for (const a of alert.alerts) {
           if (a.threat == 9) continue;
           if (a.isDrill) continue;
-          if (a.time <= lastAlertTime) continue;
 
           msg += `${threats[a.threat]} - [${new Date(a.time * 1000).toLocaleTimeString('he-IL', {
             timeZone: 'Israel',
@@ -88,29 +88,32 @@ async function Announce() {
             minute: '2-digit',
             hour12: false,
           })}]:\n${a.cities.map((city) => cities[city].en).join(', ')}\n\n`;
-
-          lastAlertTime = a.time;
         }
 
         if (msg == '') continue;
 
         const c = await client.channels.fetch(process.env.ANNOUNCE_CHANNEL);
-
         const embed = new EmbedBuilder();
         embed.setColor('DarkRed');
-        embed.setTitle('Sirens in Israel');
+        embed.setTitle("Sirens in Israel");
         embed.setDescription(msg);
-        c.send({ embeds: [embed] });
+        if(alert.id == lastAlertId && lastMessage != null){
+          if(alert.alerts.length > lastAlertAmount){
+            lastMessage.edit({ embeds: [embed] })
+          }
+        }else{
+          lastMessage = await c.send({ embeds: [embed] });
+        }
+        if(alert.id >= lastAlertId){
+          lastAlertId = alert.id;
+          lastAlertAmount = alert.alerts.length;
+        }
       }
-    } else lastAlertTime = allAlerts[0].alerts[allAlerts[0].alerts.length - 1].time;
-
-    lastAlertId = allAlerts[0].id;
-  }
+    }
 
   setTimeout(Announce, 2000);
 }
 
 client.on('ready', Announce);
 client.login(process.env.TOKEN);
-
 export {};
